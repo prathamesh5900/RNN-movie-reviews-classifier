@@ -5,6 +5,10 @@ from tensorflow.keras.preprocessing import sequence
 from tensorflow.keras.models import load_model
 import streamlit as st
 
+# Constants
+MAX_WORDS = 10000  # Must match the model's training configuration
+MAX_LEN = 500      # Input length for padding
+
 # Load the IMDb word index
 word_index = imdb.get_word_index()
 reverse_word_index = {value: key for key, value in word_index.items()}
@@ -12,11 +16,17 @@ reverse_word_index = {value: key for key, value in word_index.items()}
 # Load the trained model
 model = load_model('simple_rnn_imdb.h5')
 
-# Preprocess input text
+# Preprocess input text with word filtering
 def preprocess_text(text):
     words = text.lower().split()
-    encoded_review = [word_index.get(word, 2) + 3 for word in words]  # 2 = unknown
-    padded_review = sequence.pad_sequences([encoded_review], maxlen=500, dtype='int32')
+    encoded_review = [
+        word_index.get(word, 2) + 3  # offset for special tokens
+        for word in words
+        if word_index.get(word, 2) + 3 < MAX_WORDS  # filter out unknowns
+    ]
+    padded_review = sequence.pad_sequences(
+        [encoded_review], maxlen=MAX_LEN, dtype='int32'
+    )
     return padded_review
 
 # Predict sentiment
